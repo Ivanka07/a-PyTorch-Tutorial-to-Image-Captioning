@@ -30,10 +30,14 @@ def caption_image_beam_search(encoder, decoder, image_path, word_map, beam_size=
 
     # Read image and process
     img = imread(image_path)
+    print(img.shape)
     if len(img.shape) == 2:
         img = img[:, :, np.newaxis]
         img = np.concatenate([img, img, img], axis=2)
-    img = imresize(img, (256, 256))
+    print(type(img))
+    img = img[:,:,:3]
+    img = imresize(img, (256, 256,))
+    print(img.shape)
     img = img.transpose(2, 0, 1)
     img = img / 255.
     img = torch.FloatTensor(img).to(device)
@@ -57,6 +61,7 @@ def caption_image_beam_search(encoder, decoder, image_path, word_map, beam_size=
 
     # Tensor to store top k previous words at each step; now they're just <start>
     k_prev_words = torch.LongTensor([[word_map['<start>']]] * k).to(device)  # (k, 1)
+    print(k_prev_words)
 
     # Tensor to store top k sequences; now they're just <start>
     seqs = k_prev_words  # (k, 1)
@@ -104,8 +109,10 @@ def caption_image_beam_search(encoder, decoder, image_path, word_map, beam_size=
             top_k_scores, top_k_words = scores.view(-1).topk(k, 0, True, True)  # (s)
 
         # Convert unrolled indices to actual indices of scores
-        prev_word_inds = top_k_words / vocab_size  # (s)
+        prev_word_inds = top_k_words // vocab_size  # (s)
         next_word_inds = top_k_words % vocab_size  # (s)
+
+
 
         # Add new words to sequences, alphas
         seqs = torch.cat([seqs[prev_word_inds], next_word_inds.unsqueeze(1)], dim=1)  # (s, step+1)
